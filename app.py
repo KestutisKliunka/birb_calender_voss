@@ -18,7 +18,7 @@ COLORS = {
     '2': 'blue',  # Paper/plastic
     '3': 'blue',
     '6': 'gray',  # Glass/metal
-    '7': 'green'  # Restavfall/matavfall
+    '7': 'green'  # Restavfall and Matavfall combined
 }
 
 # Ensure all relevant fields are strings and handle NaN values
@@ -77,15 +77,21 @@ if search_query and len(search_query) >= 3:
             # Highlight calendar days based on all routes for the selected entries
             calendar_data = defaultdict(lambda: defaultdict(list))
 
+            # Process all routes for the selected entries
             for _, row in filtered_data.iterrows():
                 route = str(row['Rutenummer'])
                 week_day = int(route[3])  # Weekday: 1=Mon, 2=Tue, ..., 7=Sun
                 cycle_week = int(route[4])  # Cycle week
-                waste_type = route[0]  # Waste type: 2/3=Paper, 6=Glass, 7=Restavfall
+                waste_type = route[0]  # Waste type: 2/3=Paper, 6=Glass, 7=Restavfall/Matavfall
 
                 # Skip weekends
                 if week_day not in [6, 7]:
-                    color = COLORS.get(waste_type, 'white')
+                    # Combine Restavfall and Matavfall for routes starting with 7
+                    if waste_type == '7':
+                        color = COLORS['7']  # Green for Restavfall/Matavfall
+                    else:
+                        color = COLORS.get(waste_type, 'white')
+
                     weeks = CYCLE_WEEKS.get(cycle_week, [])
 
                     for week in weeks:
