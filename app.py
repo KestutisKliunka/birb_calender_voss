@@ -1,14 +1,11 @@
 import pandas as pd
+import streamlit as st
 import calendar
-from flask import Flask, request, jsonify, render_template
 
 # Load the dataset
 data = pd.read_csv('BIRB_Voss_alleruter.csv', sep=None, engine='python', encoding='latin1')
 
-# Initialize Flask app
-app = Flask(__name__)
-
-# Function to process dataset and get calendar highlighting
+# Define constants
 CYCLE_WEEKS = {
     1: [2, 6, 10, 14, 18, 22, 26, 30, 34, 38, 42, 46, 50],
     2: [3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47, 51],
@@ -23,37 +20,38 @@ COLORS = {
     '7': 'green'  # Restavfall/matavfall
 }
 
-@app.route('/search', methods=['GET'])
-def search():
-    query = request.args.get('query', '').lower()
-    search_type = request.args.get('type', 'etikettid').lower()
-    
-    if len(query) < 3:
-        return jsonify([])
+# Streamlit app
+st.title("Waste Collection Calendar 2025")
 
-    if search_type == 'etikettid':
-        results = data[data['EtikettID'].astype(str).str.contains(query, case=False)]
-    elif search_type == 'name':
-        results = data[data['Eiendomsnavn'].str.contains(query, case=False, na=False)]
-    elif search_type == 'address':
-        results = data[data['Gatenavn'].str.contains(query, case=False, na=False)]
-    elif search_type == 'kunde':
-        results = data[data['Bemerkning'].str.contains(query, case=False, na=False)]
+# Search bar
+search_query = st.text_input("Search by EtikettID, Name, Address, or Kunde:")
+search_type = st.selectbox("Search type", ["EtikettID", "Name", "Address", "Kunde"])
+
+if search_query and len(search_query) >= 3:
+    if search_type == "EtikettID":
+        results = data[data['EtikettID'].astype(str).str.contains(search_query, case=False)]
+    elif search_type == "Name":
+        results = data[data['Eiendomsnavn'].str.contains(search_query, case=False, na=False)]
+    elif search_type == "Address":
+        results = data[data['Gatenavn'].str.contains(search_query, case=False, na=False)]
+    elif search_type == "Kunde":
+        results = data[data['Bemerkning'].str.contains(search_query, case=False, na=False)]
     else:
         results = pd.DataFrame()
-
-    return jsonify(results[['EtikettID', 'Eiendomsnavn', 'Gatenavn', 'Bemerkning']].to_dict(orient='records'))
-
-@app.route('/calendar', methods=['POST'])
-def generate_calendar():
-    selected_route = request.json.get('route')
     
-    if not selected_route:
-        return jsonify({'error': 'No route selected'}), 400
+    if not results.empty:
+        st.write("Search Results:")
+        st.dataframe(results[['EtikettID', 'Eiendomsnavn', 'Gatenavn', 'Bemerkning']])
+    else:
+        st.write("No results found.")
 
+# Calendar generation
+selected_route = st.text_input("Enter a Route Number to Generate Calendar:")
+
+if selected_route:
     route_data = data[data['Rutenummer'] == int(selected_route)]
-
     calendar_data = {}
+
     for _, row in route_data.iterrows():
         route = str(row['Rutenummer'])
         week_day = int(route[3])
@@ -68,11 +66,18 @@ def generate_calendar():
                 calendar_data[week] = {}
             calendar_data[week][week_day] = color
 
-    return jsonify(calendar_data)
+    # Display calendar
+    st.write("Calendar for 2025:")
+    for month in range(1, 13):
+        st.write(calendar.month_name[month])
+        cal = calendar.monthcalendar(2025, month)
+        for week in cal:
+            formatted_week = []
+            for day in week:
+                if day == 0:
+                    formatted_week.append(" ")
+                else:
+                    color = calendar_data.get(day, {}).get(day, 'white')
+                    formatted_week.append(f":{color}_circle: {day}")
+            st.write(" | ".join(formatted_week))
 
-@app.route('/view', methods=['GET'])
-def view_calendar():
-    return render_template('calendar.html')
-
-if __name__ == '__main__':
-    app.run(debug=True)
