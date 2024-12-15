@@ -48,25 +48,17 @@ if search_query and len(search_query) >= 3:
     if not results.empty:
         st.write("Search Results:")
 
-        # Remove duplicates from selection list but keep all routes for calendar highlighting
-        results['Selection'] = (
-            results['FullAddress'] + " - " + results['Eiendomsnavn'] + " (Waste: " + results['Fraksjon'] + ")"
-        )
-        unique_results = results.drop_duplicates(subset=['FullAddress', 'Eiendomsnavn', 'Fraksjon'])
+        # Display all unique combinations of EtikettID and Rutenummer
+        unique_routes = results[['EtikettID', 'Rutenummer', 'Fraksjon', 'Eiendomsnavn']].drop_duplicates()
+        selected_etikett_id = st.selectbox("Select an EtikettID to view calendar:", unique_routes['EtikettID'].unique())
 
-        selected_rows = st.multiselect(
-            "Select one or more to view calendar:",
-            unique_results.index,
-            format_func=lambda x: unique_results.loc[x, 'Selection']
-        )
+        if selected_etikett_id:
+            customer_routes = results[results['EtikettID'] == selected_etikett_id]
 
-        if selected_rows:
-            selected_entries = results[results.index.isin(selected_rows)]
-
-            # Highlight calendar days based on the selected routes
+            # Highlight calendar days based on all routes for the selected EtikettID
             calendar_data = defaultdict(lambda: defaultdict(list))
 
-            for _, row in selected_entries.iterrows():
+            for _, row in customer_routes.iterrows():
                 route = str(row['Rutenummer'])
                 week_day = int(route[3])  # Weekday: 1=Mon, 2=Tue, ..., 7=Sun
                 cycle_week = int(route[4])  # Cycle week
