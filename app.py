@@ -36,13 +36,25 @@ if search_query and len(search_query) >= 3:
 
     if not results.empty:
         st.write("Search Results:")
+
+        # Ensure all fields are strings and handle NaN values
         results['EtikettID'] = results['EtikettID'].astype(str).str.replace(',', '')
         results['Rutenummer'] = results['Rutenummer'].astype(str).str.replace(',', '')
+        results['Husnummer'] = results['Husnummer'].fillna('').astype(str)
+        results['Eiendomsnavn'] = results['Eiendomsnavn'].fillna('').astype(str)
+        results['Fraksjon'] = results['Fraksjon'].fillna('').astype(str)
 
         # Combine fields for selection display
-        results['Selection'] = results['Gatenavn'] + " " + results['Husnummer'].fillna('') + " - " + results['Eiendomsnavn'].fillna('') + " (" + results['Fraksjon'].fillna('') + ")"
+        results['Selection'] = (
+            results['Gatenavn'] + " " + results['Husnummer'] + " - " +
+            results['Eiendomsnavn'] + " (" + results['Fraksjon'] + ")"
+        )
 
-        selected_row = st.radio("Select one to view calendar:", results.index, format_func=lambda x: results.loc[x, 'Selection'])
+        selected_row = st.radio(
+            "Select one to view calendar:",
+            results.index,
+            format_func=lambda x: results.loc[x, 'Selection']
+        )
 
         # Get the selected entry
         selected_entry = results.loc[selected_row]
