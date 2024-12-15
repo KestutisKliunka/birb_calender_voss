@@ -95,6 +95,7 @@ if search_query and len(search_query) >= 3:
                     weeks = CYCLE_WEEKS.get(cycle_week, [])
 
                     for week in weeks:
+                        # Add each valid weekday for the cycle week
                         calendar_data[week][week_day].append(color)
 
             # Display full year calendar
