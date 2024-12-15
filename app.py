@@ -50,7 +50,7 @@ if search_query and len(search_query) >= 3:
 
         # Remove duplicates from selection list but keep all routes for calendar highlighting
         results['Selection'] = (
-            results['FullAddress'] + " - " + results['Eiendomsnavn'] + " (" + results['Fraksjon'] + ")"
+            results['FullAddress'] + " - " + results['Eiendomsnavn'] + " (Waste: " + results['Fraksjon'] + ")"
         )
         unique_results = results.drop_duplicates(subset=['FullAddress', 'Eiendomsnavn', 'Fraksjon'])
 
@@ -101,7 +101,10 @@ if search_query and len(search_query) >= 3:
                             if colors:
                                 # Divide the highlight for overlapping colors
                                 gradient = "linear-gradient("
-                                gradient += ", ".join(f"{color} {100 / len(colors) * idx}%, {color} {100 / len(colors) * (idx + 1)}%" for idx, color in enumerate(colors))
+                                gradient += ", ".join(
+                                    f"{color} {100 / len(colors) * idx}%, {color} {100 / len(colors) * (idx + 1)}%"
+                                    for idx, color in enumerate(colors)
+                                )
                                 gradient += ")"
                                 style = f"background: {gradient}; padding: 5px; text-align: center;"
                                 month_grid += f"<td style='{style}'>{day}</td>"
