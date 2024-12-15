@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 import calendar
+from datetime import date
 
 # Load the dataset
 data = pd.read_csv('BIRB_Voss_alleruter.csv', sep=None, engine='python', encoding='latin1')
@@ -44,9 +45,9 @@ if search_query and len(search_query) >= 3:
         calendar_data = {}
         for _, row in results.iterrows():
             route = str(row['Rutenummer'])
-            week_day = int(route[3])
-            cycle_week = int(route[4])
-            waste_type = route[0]
+            week_day = int(route[3])  # Weekday: 1=Mon, 2=Tue, ...
+            cycle_week = int(route[4])  # Cycle week
+            waste_type = route[0]  # Waste type: 2/3=Paper, 6=Glass, 7=Restavfall
 
             color = COLORS.get(waste_type, 'white')
             weeks = CYCLE_WEEKS.get(cycle_week, [])
@@ -56,22 +57,33 @@ if search_query and len(search_query) >= 3:
                     calendar_data[week] = {}
                 calendar_data[week][week_day] = color
 
-        # Display calendar
-        st.write("Calendar for 2025:")
+        # Display full year calendar
+        st.write("Full Calendar for 2025:")
         for month in range(1, 13):
             st.subheader(calendar.month_name[month])
             cal = calendar.monthcalendar(2025, month)
+
+            # Build a visual representation of the calendar
+            month_grid = "<table style='border-collapse: collapse; width: 100%;'>"
+            month_grid += "<tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr>"
             for week in cal:
-                formatted_week = []
+                month_grid += "<tr>"
                 for day in week:
                     if day == 0:
-                        formatted_week.append("   ")  # Empty space for non-day cells
+                        # Empty day
+                        month_grid += "<td style='padding: 5px;'></td>"
                     else:
-                        # Highlight day if it matches pickup days
+                        # Determine color for the day
                         week_number = (day - 1) // 7 + 1
-                        color = calendar_data.get(week_number, {}).get(week.index(day), 'white')
-                        formatted_week.append(f":{color}_circle: {day}")
-                st.write(" | ".join(formatted_week))
+                        color = 'white'
+                        for week_no, days in calendar_data.items():
+                            if day in CYCLE_WEEKS.get(week_no, []) and week_number in days:
+                                color = days.get((day - 1) % 7 + 1, 'white')
+                        month_grid += f"<td style='padding: 5px; background-color: {color};'>{day}</td>"
+                month_grid += "</tr>"
+            month_grid += "</table>"
+            st.markdown(month_grid, unsafe_allow_html=True)
+
     else:
         st.write("No results found.")
 else:
