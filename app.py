@@ -48,7 +48,7 @@ if search_query and len(search_query) >= 3:
     if not results.empty:
         st.write("Search Results:")
 
-        # Consolidate and deduplicate results
+        # Consolidate and deduplicate results for display
         consolidated_results = results[['Eiendomsnavn', 'FullAddress', 'Fraksjon']].drop_duplicates()
         consolidated_results['SearchResult'] = (
             consolidated_results['Eiendomsnavn'] + " - " +
@@ -74,7 +74,7 @@ if search_query and len(search_query) >= 3:
                 how='inner'
             )
 
-            # Highlight calendar days based on the filtered entries
+            # Highlight calendar days based on all routes for the selected entries
             calendar_data = defaultdict(lambda: defaultdict(list))
 
             for _, row in filtered_data.iterrows():
