@@ -38,20 +38,21 @@ if search_query and len(search_query) >= 3:
         st.write("Search Results:")
         results['EtikettID'] = results['EtikettID'].astype(str).str.replace(',', '')
         results['Rutenummer'] = results['Rutenummer'].astype(str).str.replace(',', '')
-        st.dataframe(results[['EtikettID', 'Eiendomsnavn', 'Gatenavn', 'Bemerkning', 'Rutenummer']])
+        selected_row = st.radio("Select one to view calendar:", results.index, format_func=lambda x: f"{results.loc[x, 'Gatenavn']} - {results.loc[x, 'Bemerkning']}")
 
-        # Highlight calendar days based on routes
+        # Get the selected entry
+        selected_entry = results.loc[selected_row]
+        st.write(f"Showing calendar for: {selected_entry['Gatenavn']} - {selected_entry['Bemerkning']}")
+
+        # Highlight calendar days based on the selected route
         calendar_data = {}
-        for _, row in results.iterrows():
-            route = str(row['Rutenummer'])
-            week_day = int(route[3])  # Weekday: 1=Mon, 2=Tue, ..., 7=Sun
-            cycle_week = int(route[4])  # Cycle week
-            waste_type = route[0]  # Waste type: 2/3=Paper, 6=Glass, 7=Restavfall
+        route = str(selected_entry['Rutenummer'])
+        week_day = int(route[3])  # Weekday: 1=Mon, 2=Tue, ..., 7=Sun
+        cycle_week = int(route[4])  # Cycle week
+        waste_type = route[0]  # Waste type: 2/3=Paper, 6=Glass, 7=Restavfall
 
-            # Skip weekends
-            if week_day in [6, 7]:  # 6=Saturday, 7=Sunday
-                continue
-
+        # Skip weekends
+        if week_day not in [6, 7]:
             color = COLORS.get(waste_type, 'white')
             weeks = CYCLE_WEEKS.get(cycle_week, [])
 
