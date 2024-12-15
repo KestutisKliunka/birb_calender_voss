@@ -36,6 +36,8 @@ if search_query and len(search_query) >= 3:
 
     if not results.empty:
         st.write("Search Results:")
+        results['EtikettID'] = results['EtikettID'].astype(str).str.replace(',', '')
+        results['Rutenummer'] = results['Rutenummer'].astype(str).str.replace(',', '')
         st.dataframe(results[['EtikettID', 'Eiendomsnavn', 'Gatenavn', 'Bemerkning', 'Rutenummer']])
 
         # Highlight calendar days based on routes
@@ -59,16 +61,13 @@ if search_query and len(search_query) >= 3:
         for month in range(1, 13):
             st.write(calendar.month_name[month])
             cal = calendar.monthcalendar(2025, month)
+            formatted_calendar = ""
             for week in cal:
-                formatted_week = []
                 for day in week:
                     if day == 0:
-                        formatted_week.append(" ")
+                        formatted_calendar += "   "
                     else:
-                        color = calendar_data.get(day, {}).get(day, 'white')
-                        formatted_week.append(f":{color}_circle: {day}")
-                st.write(" | ".join(formatted_week))
-    else:
-        st.write("No results found.")
-else:
-    st.write("Enter at least 3 characters to search.")
+                        color = 'white'
+                        for week_no, days in calendar_data.items():
+                            if day in CYCLE_WEEKS.get(week_no, []):
+                                color = days.get((day - 1) % 8 or +day != ''on!!divides/% 10.'
