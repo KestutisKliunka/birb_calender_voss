@@ -1,7 +1,6 @@
 import pandas as pd
 import streamlit as st
 import calendar
-from datetime import date
 
 # Load the dataset
 data = pd.read_csv('BIRB_Voss_alleruter.csv', sep=None, engine='python', encoding='latin1')
@@ -45,9 +44,13 @@ if search_query and len(search_query) >= 3:
         calendar_data = {}
         for _, row in results.iterrows():
             route = str(row['Rutenummer'])
-            week_day = int(route[3])  # Weekday: 1=Mon, 2=Tue, ...
+            week_day = int(route[3])  # Weekday: 1=Mon, 2=Tue, ..., 7=Sun
             cycle_week = int(route[4])  # Cycle week
             waste_type = route[0]  # Waste type: 2/3=Paper, 6=Glass, 7=Restavfall
+
+            # Skip weekends
+            if week_day in [6, 7]:  # 6=Saturday, 7=Sunday
+                continue
 
             color = COLORS.get(waste_type, 'white')
             weeks = CYCLE_WEEKS.get(cycle_week, [])
@@ -68,18 +71,19 @@ if search_query and len(search_query) >= 3:
             month_grid += "<tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr>"
             for week in cal:
                 month_grid += "<tr>"
-                for day in week:
+                for i, day in enumerate(week):
                     if day == 0:
                         # Empty day
                         month_grid += "<td style='padding: 5px;'></td>"
                     else:
                         # Determine color for the day
                         week_number = (day - 1) // 7 + 1
-                        color = 'white'
-                        for week_no, days in calendar_data.items():
-                            if day in CYCLE_WEEKS.get(week_no, []) and week_number in days:
-                                color = days.get((day - 1) % 7 + 1, 'white')
-                        month_grid += f"<td style='padding: 5px; background-color: {color};'>{day}</td>"
+                        color = calendar_data.get(week_number, {}).get(i + 1, 'white')
+                        # Highlight only weekdays
+                        if i < 5:  # Monday to Friday
+                            month_grid += f"<td style='padding: 5px; background-color: {color};'>{day}</td>"
+                        else:
+                            month_grid += f"<td style='padding: 5px;'>{day}</td>"
                 month_grid += "</tr>"
             month_grid += "</table>"
             st.markdown(month_grid, unsafe_allow_html=True)
