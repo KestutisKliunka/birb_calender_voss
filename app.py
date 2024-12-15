@@ -78,7 +78,6 @@ if search_query and len(search_query) >= 3:
                     weeks = CYCLE_WEEKS.get(cycle_week, [])
 
                     for week in weeks:
-                        # Ensure all pickups for the same week and day are aggregated
                         calendar_data[week][week_day].append(color)
 
             # Display full year calendar
