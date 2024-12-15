@@ -23,31 +23,31 @@ COLORS = {
 # Streamlit app
 st.title("BIRB Voss kalender")
 
+# Prepare a combined search field for street name and house number
+data['FullAddress'] = (data['Gatenavn'].fillna('') + ' ' + data['Husnummer'].fillna('')).str.strip()
+
+data['EtikettID'] = data['EtikettID'].astype(str).str.replace(',', '')
+data['Rutenummer'] = data['Rutenummer'].astype(str).str.replace(',', '')
+data['Eiendomsnavn'] = data['Eiendomsnavn'].fillna('').astype(str)
+data['Fraksjon'] = data['Fraksjon'].fillna('').astype(str)
+
 # Search bar
-search_query = st.text_input("Search by EtikettID, Name, Address, or Kunde:")
+search_query = st.text_input("Search by Address, EtikettID, Name, or Kunde:")
 
 if search_query and len(search_query) >= 3:
     results = data[
-        data['EtikettID'].astype(str).str.contains(search_query, case=False, na=False) |
-        data['Eiendomsnavn'].astype(str).str.contains(search_query, case=False, na=False) |
-        data['Gatenavn'].astype(str).str.contains(search_query, case=False, na=False) |
-        data['Bemerkning'].astype(str).str.contains(search_query, case=False, na=False)
+        data['EtikettID'].str.contains(search_query, case=False, na=False) |
+        data['Eiendomsnavn'].str.contains(search_query, case=False, na=False) |
+        data['FullAddress'].str.contains(search_query, case=False, na=False) |
+        data['Bemerkning'].str.contains(search_query, case=False, na=False)
     ]
 
     if not results.empty:
         st.write("Search Results:")
 
-        # Ensure all fields are strings and handle NaN values
-        results['EtikettID'] = results['EtikettID'].astype(str).str.replace(',', '')
-        results['Rutenummer'] = results['Rutenummer'].astype(str).str.replace(',', '')
-        results['Husnummer'] = results['Husnummer'].fillna('').astype(str)
-        results['Eiendomsnavn'] = results['Eiendomsnavn'].fillna('').astype(str)
-        results['Fraksjon'] = results['Fraksjon'].fillna('').astype(str)
-
         # Combine fields for selection display
         results['Selection'] = (
-            results['Gatenavn'] + " " + results['Husnummer'] + " - " +
-            results['Eiendomsnavn'] + " (" + results['Fraksjon'] + ")"
+            results['FullAddress'] + " - " + results['Eiendomsnavn'] + " (" + results['Fraksjon'] + ")"
         )
 
         selected_row = st.radio(
