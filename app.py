@@ -48,70 +48,70 @@ if search_query and len(search_query) >= 3:
     if not results.empty:
         st.write("Search Results:")
 
-        # Display all unique combinations of EtikettID and Rutenummer
-        unique_routes = results[['EtikettID', 'Rutenummer', 'Fraksjon', 'Eiendomsnavn']].drop_duplicates()
-        selected_etikett_id = st.selectbox("Select an EtikettID to view calendar:", unique_routes['EtikettID'].unique())
+        # Combine fields for display in the search results
+        results['SearchResult'] = (
+            results['Eiendomsnavn'] + " - " + results['FullAddress'] + " (" + results['Fraksjon'] + ")"
+        )
 
-        if selected_etikett_id:
-            customer_routes = results[results['EtikettID'] == selected_etikett_id]
+        selected_rows = st.multiselect(
+            "Select one or more customers to view calendar:",
+            results.index,
+            format_func=lambda x: results.loc[x, 'SearchResult']
+        )
 
-            # Let the user select multiple waste types to visualize
-            available_waste_types = customer_routes['Fraksjon'].unique()
-            selected_waste_types = st.multiselect("Select Waste Types to Visualize:", available_waste_types)
+        if selected_rows:
+            selected_entries = results.loc[selected_rows]
 
-            if selected_waste_types:
-                filtered_routes = customer_routes[customer_routes['Fraksjon'].isin(selected_waste_types)]
+            # Highlight calendar days based on the selected entries
+            calendar_data = defaultdict(lambda: defaultdict(list))
 
-                # Highlight calendar days based on all selected routes
-                calendar_data = defaultdict(lambda: defaultdict(list))
+            for _, row in selected_entries.iterrows():
+                route = str(row['Rutenummer'])
+                week_day = int(route[3])  # Weekday: 1=Mon, 2=Tue, ..., 7=Sun
+                cycle_week = int(route[4])  # Cycle week
+                waste_type = route[0]  # Waste type: 2/3=Paper, 6=Glass, 7=Restavfall
 
-                for _, row in filtered_routes.iterrows():
-                    route = str(row['Rutenummer'])
-                    week_day = int(route[3])  # Weekday: 1=Mon, 2=Tue, ..., 7=Sun
-                    cycle_week = int(route[4])  # Cycle week
-                    waste_type = route[0]  # Waste type: 2/3=Paper, 6=Glass, 7=Restavfall
+                # Skip weekends
+                if week_day not in [6, 7]:
+                    color = COLORS.get(waste_type, 'white')
+                    weeks = CYCLE_WEEKS.get(cycle_week, [])
 
-                    # Skip weekends
-                    if week_day not in [6, 7]:
-                        color = COLORS.get(waste_type, 'white')
-                        weeks = CYCLE_WEEKS.get(cycle_week, [])
+                    for week in weeks:
+                        calendar_data[week][week_day].append(color)
 
-                        for week in weeks:
-                            calendar_data[week][week_day].append(color)
+            # Display full year calendar
+            st.write("Full Calendar for 2025:")
+            for month in range(1, 13):
+                st.subheader(calendar.month_name[month])
+                cal = calendar.monthcalendar(2025, month)
 
-                # Display full year calendar
-                st.write("Full Calendar for 2025:")
-                for month in range(1, 13):
-                    st.subheader(calendar.month_name[month])
-                    cal = calendar.monthcalendar(2025, month)
-
-                    # Build a visual representation of the calendar
-                    month_grid = "<table style='border-collapse: collapse; width: 100%;'>"
-                    month_grid += "<tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr>"
-                    for week in cal:
-                        month_grid += "<tr>"
-                        for i, day in enumerate(week):
-                            if day == 0:
-                                # Empty day
-                                month_grid += "<td style='padding: 5px;'></td>"
+                # Build a visual representation of the calendar
+                month_grid = "<table style='border-collapse: collapse; width: 100%;'>"
+                month_grid += "<tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr>"
+                for week in cal:
+                    month_grid += "<tr>"
+                    for i, day in enumerate(week):
+                        if day == 0:
+                            # Empty day
+                            month_grid += "<td style='padding: 5px;'></td>"
+                        else:
+                            # Determine colors for the day
+                            colors = calendar_data.get(day, {}).get(i + 1, [])
+                            if colors:
+                                # Divide the highlight for overlapping colors
+                                gradient = "linear-gradient("
+                                gradient += ", ".join(
+                                    f"{color} {100 / len(colors) * idx}%, {color} {100 / len(colors) * (idx + 1)}%"
+                                    for idx, color in enumerate(colors)
+                                )
+                                gradient += ")"
+                                style = f"background: {gradient}; padding: 5px; text-align: center;"
+                                month_grid += f"<td style='{style}'>{day}</td>"
                             else:
-                                # Determine colors for the day
-                                colors = calendar_data.get(day, {}).get(i + 1, [])
-                                if colors:
-                                    # Divide the highlight for overlapping colors
-                                    gradient = "linear-gradient("
-                                    gradient += ", ".join(
-                                        f"{color} {100 / len(colors) * idx}%, {color} {100 / len(colors) * (idx + 1)}%"
-                                        for idx, color in enumerate(colors)
-                                    )
-                                    gradient += ")"
-                                    style = f"background: {gradient}; padding: 5px; text-align: center;"
-                                    month_grid += f"<td style='{style}'>{day}</td>"
-                                else:
-                                    month_grid += f"<td style='padding: 5px;'>{day}</td>"
-                        month_grid += "</tr>"
-                    month_grid += "</table>"
-                    st.markdown(month_grid, unsafe_allow_html=True)
+                                month_grid += f"<td style='padding: 5px;'>{day}</td>"
+                    month_grid += "</tr>"
+                month_grid += "</table>"
+                st.markdown(month_grid, unsafe_allow_html=True)
 
     else:
         st.write("No results found.")
