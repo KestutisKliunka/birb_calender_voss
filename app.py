@@ -18,7 +18,7 @@ COLORS = {
     '2': 'blue',  # Paper/plastic
     '3': 'blue',
     '6': 'gray',  # Glass/metal
-    '7': 'green'  # Restavfall and Matavfall combined
+    '7': 'green'  # Combined Restavfall/Matavfall
 }
 
 # Ensure all relevant fields are strings and handle NaN values
