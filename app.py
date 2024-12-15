@@ -20,17 +20,15 @@ COLORS = {
     '7': 'green'  # Restavfall/matavfall
 }
 
-# Ensure 'Gatenavn' and 'Husnummer' are strings and handle NaN values
+# Ensure all relevant fields are strings and handle NaN values
 data['Gatenavn'] = data['Gatenavn'].fillna('').astype(str)
 data['Husnummer'] = data['Husnummer'].fillna('').astype(str)
-
-# Combine fields to create a full address
 data['FullAddress'] = (data['Gatenavn'] + ' ' + data['Husnummer']).str.strip()
-
 data['EtikettID'] = data['EtikettID'].astype(str).str.replace(',', '')
 data['Rutenummer'] = data['Rutenummer'].astype(str).str.replace(',', '')
 data['Eiendomsnavn'] = data['Eiendomsnavn'].fillna('').astype(str)
 data['Fraksjon'] = data['Fraksjon'].fillna('').astype(str)
+data['Bemerkning'] = data['Bemerkning'].fillna('').astype(str)
 
 # Streamlit app
 st.title("BIRB Voss kalender")
