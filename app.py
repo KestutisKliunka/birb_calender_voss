@@ -38,11 +38,15 @@ if search_query and len(search_query) >= 3:
         st.write("Search Results:")
         results['EtikettID'] = results['EtikettID'].astype(str).str.replace(',', '')
         results['Rutenummer'] = results['Rutenummer'].astype(str).str.replace(',', '')
-        selected_row = st.radio("Select one to view calendar:", results.index, format_func=lambda x: f"{results.loc[x, 'Gatenavn']} - {results.loc[x, 'Bemerkning']}")
+
+        # Combine fields for selection display
+        results['Selection'] = results['Gatenavn'] + " " + results['Husnummer'].fillna('') + " - " + results['Eiendomsnavn'].fillna('') + " (" + results['Fraksjon'].fillna('') + ")"
+
+        selected_row = st.radio("Select one to view calendar:", results.index, format_func=lambda x: results.loc[x, 'Selection'])
 
         # Get the selected entry
         selected_entry = results.loc[selected_row]
-        st.write(f"Showing calendar for: {selected_entry['Gatenavn']} - {selected_entry['Bemerkning']}")
+        st.write(f"Showing calendar for: {selected_entry['Selection']}")
 
         # Highlight calendar days based on the selected route
         calendar_data = {}
