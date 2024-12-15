@@ -21,63 +21,54 @@ COLORS = {
 }
 
 # Streamlit app
-st.title("Waste Collection Calendar 2025")
+st.title("BIRB Voss kalender")
 
 # Search bar
 search_query = st.text_input("Search by EtikettID, Name, Address, or Kunde:")
-search_type = st.selectbox("Search type", ["EtikettID", "Name", "Address", "Kunde"])
 
 if search_query and len(search_query) >= 3:
-    if search_type == "EtikettID":
-        results = data[data['EtikettID'].astype(str).str.contains(search_query, case=False)]
-    elif search_type == "Name":
-        results = data[data['Eiendomsnavn'].str.contains(search_query, case=False, na=False)]
-    elif search_type == "Address":
-        results = data[data['Gatenavn'].str.contains(search_query, case=False, na=False)]
-    elif search_type == "Kunde":
-        results = data[data['Bemerkning'].str.contains(search_query, case=False, na=False)]
-    else:
-        results = pd.DataFrame()
-    
+    results = data[
+        data['EtikettID'].astype(str).str.contains(search_query, case=False) |
+        data['Eiendomsnavn'].str.contains(search_query, case=False, na=False) |
+        data['Gatenavn'].str.contains(search_query, case=False, na=False) |
+        data['Bemerkning'].str.contains(search_query, case=False, na=False)
+    ]
+
     if not results.empty:
         st.write("Search Results:")
-        st.dataframe(results[['EtikettID', 'Eiendomsnavn', 'Gatenavn', 'Bemerkning']])
+        st.dataframe(results[['EtikettID', 'Eiendomsnavn', 'Gatenavn', 'Bemerkning', 'Rutenummer']])
+
+        # Highlight calendar days based on routes
+        calendar_data = {}
+        for _, row in results.iterrows():
+            route = str(row['Rutenummer'])
+            week_day = int(route[3])
+            cycle_week = int(route[4])
+            waste_type = route[0]
+
+            color = COLORS.get(waste_type, 'white')
+            weeks = CYCLE_WEEKS.get(cycle_week, [])
+
+            for week in weeks:
+                if week not in calendar_data:
+                    calendar_data[week] = {}
+                calendar_data[week][week_day] = color
+
+        # Display calendar
+        st.write("Calendar for 2025:")
+        for month in range(1, 13):
+            st.write(calendar.month_name[month])
+            cal = calendar.monthcalendar(2025, month)
+            for week in cal:
+                formatted_week = []
+                for day in week:
+                    if day == 0:
+                        formatted_week.append(" ")
+                    else:
+                        color = calendar_data.get(day, {}).get(day, 'white')
+                        formatted_week.append(f":{color}_circle: {day}")
+                st.write(" | ".join(formatted_week))
     else:
         st.write("No results found.")
-
-# Calendar generation
-selected_route = st.text_input("Enter a Route Number to Generate Calendar:")
-
-if selected_route:
-    route_data = data[data['Rutenummer'] == int(selected_route)]
-    calendar_data = {}
-
-    for _, row in route_data.iterrows():
-        route = str(row['Rutenummer'])
-        week_day = int(route[3])
-        cycle_week = int(route[4])
-        waste_type = route[0]
-
-        color = COLORS.get(waste_type, 'white')
-        weeks = CYCLE_WEEKS.get(cycle_week, [])
-
-        for week in weeks:
-            if week not in calendar_data:
-                calendar_data[week] = {}
-            calendar_data[week][week_day] = color
-
-    # Display calendar
-    st.write("Calendar for 2025:")
-    for month in range(1, 13):
-        st.write(calendar.month_name[month])
-        cal = calendar.monthcalendar(2025, month)
-        for week in cal:
-            formatted_week = []
-            for day in week:
-                if day == 0:
-                    formatted_week.append(" ")
-                else:
-                    color = calendar_data.get(day, {}).get(day, 'white')
-                    formatted_week.append(f":{color}_circle: {day}")
-            st.write(" | ".join(formatted_week))
-
+else:
+    st.write("Enter at least 3 characters to search.")
