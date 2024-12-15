@@ -59,15 +59,20 @@ if search_query and len(search_query) >= 3:
         # Display calendar
         st.write("Calendar for 2025:")
         for month in range(1, 13):
-            st.write(calendar.month_name[month])
+            st.subheader(calendar.month_name[month])
             cal = calendar.monthcalendar(2025, month)
-            formatted_calendar = ""
             for week in cal:
+                formatted_week = []
                 for day in week:
                     if day == 0:
-                        formatted_calendar += "   "
+                        formatted_week.append("   ")  # Empty space for non-day cells
                     else:
-                        color = 'white'
-                        for week_no, days in calendar_data.items():
-                            if day in CYCLE_WEEKS.get(week_no, []):
-                                color = days.get((day - 1) % 8 or +day != ''on!!divides/% 10.'
+                        # Highlight day if it matches pickup days
+                        week_number = (day - 1) // 7 + 1
+                        color = calendar_data.get(week_number, {}).get(week.index(day), 'white')
+                        formatted_week.append(f":{color}_circle: {day}")
+                st.write(" | ".join(formatted_week))
+    else:
+        st.write("No results found.")
+else:
+    st.write("Enter at least 3 characters to search.")
