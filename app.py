@@ -55,56 +55,63 @@ if search_query and len(search_query) >= 3:
         if selected_etikett_id:
             customer_routes = results[results['EtikettID'] == selected_etikett_id]
 
-            # Highlight calendar days based on all routes for the selected EtikettID
-            calendar_data = defaultdict(lambda: defaultdict(list))
+            # Let the user select multiple waste types to visualize
+            available_waste_types = customer_routes['Fraksjon'].unique()
+            selected_waste_types = st.multiselect("Select Waste Types to Visualize:", available_waste_types)
 
-            for _, row in customer_routes.iterrows():
-                route = str(row['Rutenummer'])
-                week_day = int(route[3])  # Weekday: 1=Mon, 2=Tue, ..., 7=Sun
-                cycle_week = int(route[4])  # Cycle week
-                waste_type = route[0]  # Waste type: 2/3=Paper, 6=Glass, 7=Restavfall
+            if selected_waste_types:
+                filtered_routes = customer_routes[customer_routes['Fraksjon'].isin(selected_waste_types)]
 
-                # Skip weekends
-                if week_day not in [6, 7]:
-                    color = COLORS.get(waste_type, 'white')
-                    weeks = CYCLE_WEEKS.get(cycle_week, [])
+                # Highlight calendar days based on all selected routes
+                calendar_data = defaultdict(lambda: defaultdict(list))
 
-                    for week in weeks:
-                        calendar_data[week][week_day].append(color)
+                for _, row in filtered_routes.iterrows():
+                    route = str(row['Rutenummer'])
+                    week_day = int(route[3])  # Weekday: 1=Mon, 2=Tue, ..., 7=Sun
+                    cycle_week = int(route[4])  # Cycle week
+                    waste_type = route[0]  # Waste type: 2/3=Paper, 6=Glass, 7=Restavfall
 
-            # Display full year calendar
-            st.write("Full Calendar for 2025:")
-            for month in range(1, 13):
-                st.subheader(calendar.month_name[month])
-                cal = calendar.monthcalendar(2025, month)
+                    # Skip weekends
+                    if week_day not in [6, 7]:
+                        color = COLORS.get(waste_type, 'white')
+                        weeks = CYCLE_WEEKS.get(cycle_week, [])
 
-                # Build a visual representation of the calendar
-                month_grid = "<table style='border-collapse: collapse; width: 100%;'>"
-                month_grid += "<tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr>"
-                for week in cal:
-                    month_grid += "<tr>"
-                    for i, day in enumerate(week):
-                        if day == 0:
-                            # Empty day
-                            month_grid += "<td style='padding: 5px;'></td>"
-                        else:
-                            # Determine colors for the day
-                            colors = calendar_data.get(day, {}).get(i + 1, [])
-                            if colors:
-                                # Divide the highlight for overlapping colors
-                                gradient = "linear-gradient("
-                                gradient += ", ".join(
-                                    f"{color} {100 / len(colors) * idx}%, {color} {100 / len(colors) * (idx + 1)}%"
-                                    for idx, color in enumerate(colors)
-                                )
-                                gradient += ")"
-                                style = f"background: {gradient}; padding: 5px; text-align: center;"
-                                month_grid += f"<td style='{style}'>{day}</td>"
+                        for week in weeks:
+                            calendar_data[week][week_day].append(color)
+
+                # Display full year calendar
+                st.write("Full Calendar for 2025:")
+                for month in range(1, 13):
+                    st.subheader(calendar.month_name[month])
+                    cal = calendar.monthcalendar(2025, month)
+
+                    # Build a visual representation of the calendar
+                    month_grid = "<table style='border-collapse: collapse; width: 100%;'>"
+                    month_grid += "<tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr>"
+                    for week in cal:
+                        month_grid += "<tr>"
+                        for i, day in enumerate(week):
+                            if day == 0:
+                                # Empty day
+                                month_grid += "<td style='padding: 5px;'></td>"
                             else:
-                                month_grid += f"<td style='padding: 5px;'>{day}</td>"
-                    month_grid += "</tr>"
-                month_grid += "</table>"
-                st.markdown(month_grid, unsafe_allow_html=True)
+                                # Determine colors for the day
+                                colors = calendar_data.get(day, {}).get(i + 1, [])
+                                if colors:
+                                    # Divide the highlight for overlapping colors
+                                    gradient = "linear-gradient("
+                                    gradient += ", ".join(
+                                        f"{color} {100 / len(colors) * idx}%, {color} {100 / len(colors) * (idx + 1)}%"
+                                        for idx, color in enumerate(colors)
+                                    )
+                                    gradient += ")"
+                                    style = f"background: {gradient}; padding: 5px; text-align: center;"
+                                    month_grid += f"<td style='{style}'>{day}</td>"
+                                else:
+                                    month_grid += f"<td style='padding: 5px;'>{day}</td>"
+                        month_grid += "</tr>"
+                    month_grid += "</table>"
+                    st.markdown(month_grid, unsafe_allow_html=True)
 
     else:
         st.write("No results found.")
