@@ -78,9 +78,7 @@ if search_query and len(search_query) >= 3:
                     weeks = CYCLE_WEEKS.get(cycle_week, [])
 
                     for week in weeks:
-                        # Map the week number to all matching calendar weeks
-                        for cal_week in weeks:
-                            calendar_data[cal_week][week_day].append(color)
+                        calendar_data[week][week_day].append(color)
 
             # Display full year calendar
             st.write("Full Calendar for 2025:")
