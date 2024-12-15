@@ -20,16 +20,20 @@ COLORS = {
     '7': 'green'  # Restavfall/matavfall
 }
 
-# Streamlit app
-st.title("BIRB Voss kalender")
+# Ensure 'Gatenavn' and 'Husnummer' are strings and handle NaN values
+data['Gatenavn'] = data['Gatenavn'].fillna('').astype(str)
+data['Husnummer'] = data['Husnummer'].fillna('').astype(str)
 
-# Prepare a combined search field for street name and house number
-data['FullAddress'] = (data['Gatenavn'].fillna('') + ' ' + data['Husnummer'].fillna('')).str.strip()
+# Combine fields to create a full address
+data['FullAddress'] = (data['Gatenavn'] + ' ' + data['Husnummer']).str.strip()
 
 data['EtikettID'] = data['EtikettID'].astype(str).str.replace(',', '')
 data['Rutenummer'] = data['Rutenummer'].astype(str).str.replace(',', '')
 data['Eiendomsnavn'] = data['Eiendomsnavn'].fillna('').astype(str)
 data['Fraksjon'] = data['Fraksjon'].fillna('').astype(str)
+
+# Streamlit app
+st.title("BIRB Voss kalender")
 
 # Search bar
 search_query = st.text_input("Search by Address, EtikettID, Name, or Kunde:")
