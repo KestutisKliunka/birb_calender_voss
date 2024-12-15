@@ -48,24 +48,36 @@ if search_query and len(search_query) >= 3:
     if not results.empty:
         st.write("Search Results:")
 
-        # Combine fields for display in the search results
-        results['SearchResult'] = (
-            results['Eiendomsnavn'] + " - " + results['FullAddress'] + " (" + results['Fraksjon'] + ")"
+        # Consolidate and deduplicate results
+        consolidated_results = results[['Eiendomsnavn', 'FullAddress', 'Fraksjon']].drop_duplicates()
+        consolidated_results['SearchResult'] = (
+            consolidated_results['Eiendomsnavn'] + " - " +
+            consolidated_results['FullAddress'] + " (" +
+            consolidated_results['Fraksjon'] + ")"
         )
 
+        # Show unique results in a multiselect box
         selected_rows = st.multiselect(
             "Select one or more customers to view calendar:",
-            results.index,
-            format_func=lambda x: results.loc[x, 'SearchResult']
+            consolidated_results.index,
+            format_func=lambda x: consolidated_results.loc[x, 'SearchResult']
         )
 
         if selected_rows:
-            selected_entries = results.loc[selected_rows]
+            # Retrieve selected entries
+            selected_entries = consolidated_results.loc[selected_rows]
 
-            # Highlight calendar days based on the selected entries
+            # Filter the original dataset to include all routes for the selected entries
+            filtered_data = data.merge(
+                selected_entries,
+                on=['Eiendomsnavn', 'FullAddress', 'Fraksjon'],
+                how='inner'
+            )
+
+            # Highlight calendar days based on the filtered entries
             calendar_data = defaultdict(lambda: defaultdict(list))
 
-            for _, row in selected_entries.iterrows():
+            for _, row in filtered_data.iterrows():
                 route = str(row['Rutenummer'])
                 week_day = int(route[3])  # Weekday: 1=Mon, 2=Tue, ..., 7=Sun
                 cycle_week = int(route[4])  # Cycle week
