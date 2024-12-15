@@ -84,19 +84,16 @@ if search_query and len(search_query) >= 3:
                 cycle_week = int(route[4])  # Cycle week
                 waste_type = route[0]  # Waste type: 2/3=Paper, 6=Glass, 7=Restavfall/Matavfall
 
-                # Skip weekends
-                if week_day not in [6, 7]:
-                    # Combine Restavfall and Matavfall for routes starting with 7
-                    if waste_type == '7':
-                        color = COLORS['7']  # Green for Restavfall/Matavfall
-                    else:
-                        color = COLORS.get(waste_type, 'white')
+                # Combine Restavfall and Matavfall for routes starting with 7
+                if waste_type == '7':
+                    color = COLORS['7']  # Green for Restavfall/Matavfall
+                else:
+                    color = COLORS.get(waste_type, 'white')
 
-                    weeks = CYCLE_WEEKS.get(cycle_week, [])
-
-                    for week in weeks:
-                        # Add each valid weekday for the cycle week
-                        calendar_data[week][week_day].append(color)
+                weeks = CYCLE_WEEKS.get(cycle_week, [])
+                for week in weeks:
+                    # Safely append the color for the day
+                    calendar_data[week][week_day].append(color)
 
             # Display full year calendar
             st.write("Full Calendar for 2025:")
