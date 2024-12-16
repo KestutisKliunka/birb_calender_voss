@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 import calendar
 from collections import defaultdict
-from datetime import timedelta, date
+from datetime import date, timedelta
 
 # Load the dataset
 data = pd.read_csv('BIRB_Voss_alleruter.csv', sep=None, engine='python', encoding='latin1')
@@ -15,45 +15,39 @@ COLORS = {
     '7': 'green'  # Combined Restavfall/Matavfall
 }
 
-# Ensure all relevant fields are strings and handle NaN values
-data['Gatenavn'] = data['Gatenavn'].fillna('').astype(str)
-data['Husnummer'] = data['Husnummer'].fillna('').astype(str)
-data['FullAddress'] = (data['Gatenavn'] + ' ' + data['Husnummer']).str.strip()
-data['EtikettID'] = data['EtikettID'].astype(str).str.replace(',', '')
-data['Rutenummer'] = data['Rutenummer'].astype(str).str.replace(',', '')
-data['Eiendomsnavn'] = data['Eiendomsnavn'].fillna('').astype(str)
-data['Fraksjon'] = data['Fraksjon'].fillna('').astype(str)
-data['Bemerkning'] = data['Bemerkning'].fillna('').astype(str)
-data['Frekvens'] = data['Frekvens'].fillna(4)  # Default to 4 weeks if missing
+CYCLE_WEEKS = {
+    1: 2,  # Start of cycle week 1 in calendar week
+    2: 3,  # Start of cycle week 2 in calendar week
+    3: 4,  # Start of cycle week 3 in calendar week
+    4: 1   # Start of cycle week 4 in calendar week
+}
 
-# Helper function to calculate pickup days
-def calculate_pickup_days(start_date, weekday, frequency, year=2025):
+# Helper function to calculate pickup dates
+def calculate_yearly_pickup_dates(start_date, weekday, interval=28):
     """
-    Calculate all pickup dates in a year based on the start date, weekday, and frequency.
+    Calculate all pickup dates in a year starting from a specific date.
 
     Args:
-        start_date (datetime.date): The first date to start calculations from.
-        weekday (int): Day of the week (1=Mon, 2=Tue, ..., 7=Sun).
-        frequency (float): Pickup frequency (1=weekly, 2=every 2 weeks, etc.).
-        year (int): Year to calculate for.
+        start_date (datetime.date): The first pickup date.
+        weekday (int): Day of the week (1=Monday, 7=Sunday).
+        interval (int): Days between pickups (default=28 for 4-week cycle).
 
     Returns:
-        list: List of all pickup dates in the given year.
+        list: List of all pickup dates for the year.
     """
     current_date = start_date
-    days = []
-    delta = timedelta(days=int(7 / frequency))  # Frequency determines the gap in days
+    pickup_dates = []
 
-    # Ensure we start on the correct weekday
+    # Adjust start_date to match the specified weekday
     while current_date.weekday() + 1 != weekday:
         current_date += timedelta(days=1)
 
-    # Generate all dates for the year
-    while current_date.year == year:
-        days.append(current_date)
-        current_date += delta
+    # Generate all pickup dates for the year
+    while current_date.year == start_date.year:
+        pickup_dates.append(current_date)
+        current_date += timedelta(days=interval)
 
-    return days
+    return pickup_dates
 
 # Streamlit app
 st.title("BIRB Voss kalender")
@@ -104,19 +98,20 @@ if search_query and len(search_query) >= 3:
             # Process all routes for the selected entries
             for _, row in filtered_data.iterrows():
                 route = str(row['Rutenummer'])
-                weekday = int(route[3])  # Weekday: 1=Mon, 2=Tue, ..., 7=Sun
-                frequency = float(row['Frekvens'])  # Pickup frequency
+                weekday = int(route[3])  # Weekday: 1=Monday, 7=Sunday
+                cycle_week = int(route[4])  # Cycle week
                 waste_type = route[0]  # Waste type: 2/3=Paper, 6=Glass, 7=Restavfall/Matavfall
 
-                # Combine Restavfall and Matavfall for routes starting with 7
-                color = COLORS.get(waste_type, 'white')
+                # Map cycle week to its starting calendar week
+                first_calendar_week = CYCLE_WEEKS.get(cycle_week, 1)
+                first_pickup_date = date(2025, 1, 1) + timedelta(weeks=(first_calendar_week - 1))
 
-                # Calculate all pickup days for the route
-                pickup_days = calculate_pickup_days(date(2025, 1, 1), weekday, frequency)
+                # Calculate all pickup dates for the route
+                pickup_dates = calculate_yearly_pickup_dates(first_pickup_date, weekday)
 
-                # Map pickup days to the calendar
-                for day in pickup_days:
-                    calendar_data[day].append(color)
+                # Map pickup dates to the calendar
+                for day in pickup_dates:
+                    calendar_data[day].append(COLORS.get(waste_type, 'white'))
 
             # Display full year calendar
             st.write("Full Calendar for 2025:")
