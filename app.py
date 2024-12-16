@@ -7,6 +7,15 @@ from datetime import date, timedelta
 # Load the dataset
 data = pd.read_csv('BIRB_Voss_alleruter.csv', sep=None, engine='python', encoding='latin1')
 
+# Ensure all relevant fields are strings and handle NaN values
+data['EtikettID'] = data['EtikettID'].fillna('').astype(str)
+data['Eiendomsnavn'] = data['Eiendomsnavn'].fillna('').astype(str)
+data['Gatenavn'] = data['Gatenavn'].fillna('').astype(str)
+data['Husnummer'] = data['Husnummer'].fillna('').astype(str)
+data['FullAddress'] = (data['Gatenavn'] + ' ' + data['Husnummer']).str.strip()
+data['Bemerkning'] = data['Bemerkning'].fillna('').astype(str)
+data['Rutenummer'] = data['Rutenummer'].astype(str)
+
 # Define constants
 COLORS = {
     '2': 'blue',  # Paper/plastic
