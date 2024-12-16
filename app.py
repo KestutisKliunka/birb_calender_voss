@@ -24,37 +24,36 @@ COLORS = {
     '7': 'green'  # Combined Restavfall/Matavfall
 }
 
-CYCLE_WEEKS = {
-    1: 2,  # Start of cycle week 1 in calendar week
-    2: 3,  # Start of cycle week 2 in calendar week
-    3: 4,  # Start of cycle week 3 in calendar week
-    4: 1   # Start of cycle week 4 in calendar week
+CYCLE_TO_CALENDAR_WEEKS = {
+    1: [2, 6, 10, 14, 18, 22, 26, 30, 34, 38, 42, 46, 50],
+    2: [3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47, 51],
+    3: [4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52],
+    4: [1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49]
 }
 
 # Helper function to calculate pickup dates
-def calculate_yearly_pickup_dates(start_date, weekday, interval=28):
+def calculate_pickup_dates(cycle_week, weekday, year=2025):
     """
-    Calculate all pickup dates in a year starting from a specific date.
+    Calculate all pickup dates in a year for a specific cycle week and weekday.
 
     Args:
-        start_date (datetime.date): The first pickup date.
-        weekday (int): Day of the week (1=Monday, 7=Sunday).
-        interval (int): Days between pickups (default=28 for 4-week cycle).
+        cycle_week (int): Cycle week (1, 2, 3, or 4).
+        weekday (int): Day of the week (1=Monday, ..., 7=Sunday).
+        year (int): Year to calculate for.
 
     Returns:
         list: List of all pickup dates for the year.
     """
-    current_date = start_date
+    calendar_weeks = CYCLE_TO_CALENDAR_WEEKS.get(cycle_week, [])
     pickup_dates = []
 
-    # Adjust start_date to match the specified weekday
-    while current_date.weekday() + 1 != weekday:
-        current_date += timedelta(days=1)
-
-    # Generate all pickup dates for the year
-    while current_date.year == start_date.year:
-        pickup_dates.append(current_date)
-        current_date += timedelta(days=interval)
+    for calendar_week in calendar_weeks:
+        # Calculate the first day of the calendar week
+        first_day_of_week = date.fromisocalendar(year, calendar_week, 1)
+        
+        # Adjust to the correct weekday
+        pickup_date = first_day_of_week + timedelta(days=(weekday - 1))
+        pickup_dates.append(pickup_date)
 
     return pickup_dates
 
@@ -107,16 +106,12 @@ if search_query and len(search_query) >= 3:
             # Process all routes for the selected entries
             for _, row in filtered_data.iterrows():
                 route = str(row['Rutenummer'])
-                weekday = int(route[3])  # Weekday: 1=Monday, 7=Sunday
+                weekday = int(route[3])  # Weekday: 1=Monday, ..., 7=Sunday
                 cycle_week = int(route[4])  # Cycle week
                 waste_type = route[0]  # Waste type: 2/3=Paper, 6=Glass, 7=Restavfall/Matavfall
 
-                # Map cycle week to its starting calendar week
-                first_calendar_week = CYCLE_WEEKS.get(cycle_week, 1)
-                first_pickup_date = date(2025, 1, 1) + timedelta(weeks=(first_calendar_week - 1))
-
                 # Calculate all pickup dates for the route
-                pickup_dates = calculate_yearly_pickup_dates(first_pickup_date, weekday)
+                pickup_dates = calculate_pickup_dates(cycle_week, weekday)
 
                 # Map pickup dates to the calendar
                 for day in pickup_dates:
