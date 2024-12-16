@@ -7,12 +7,11 @@ from collections import defaultdict
 data = pd.read_csv('BIRB_Voss_alleruter.csv', sep=None, engine='python', encoding='latin1')
 
 # Define constants
-# Explicit mapping of cycle weeks to calendar weeks
 CYCLE_WEEKS = {
     1: [2, 6, 10, 14, 18, 22, 26, 30, 34, 38, 42, 46, 50],
     2: [3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47, 51],
     3: [4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52],
-    4: [5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 1]
+    4: [1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49]
 }
 
 COLORS = {
@@ -91,9 +90,10 @@ if search_query and len(search_query) >= 3:
                 else:
                     color = COLORS.get(waste_type, 'white')
 
+                # Map cycle weeks to calendar weeks
                 weeks = CYCLE_WEEKS.get(cycle_week, [])
                 for week in weeks:
-                    # Safely append the color for the day
+                    # Add the weekday for this calendar week
                     calendar_data[week][week_day].append(color)
 
             # Display full year calendar
