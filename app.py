@@ -2,18 +2,12 @@ import pandas as pd
 import streamlit as st
 import calendar
 from collections import defaultdict
+from datetime import timedelta, date
 
 # Load the dataset
 data = pd.read_csv('BIRB_Voss_alleruter.csv', sep=None, engine='python', encoding='latin1')
 
 # Define constants
-CYCLE_WEEKS = {
-    1: [2, 6, 10, 14, 18, 22, 26, 30, 34, 38, 42, 46, 50],
-    2: [3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47, 51],
-    3: [4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52],
-    4: [1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49]
-}
-
 COLORS = {
     '2': 'blue',  # Paper/plastic
     '3': 'blue',
@@ -30,6 +24,36 @@ data['Rutenummer'] = data['Rutenummer'].astype(str).str.replace(',', '')
 data['Eiendomsnavn'] = data['Eiendomsnavn'].fillna('').astype(str)
 data['Fraksjon'] = data['Fraksjon'].fillna('').astype(str)
 data['Bemerkning'] = data['Bemerkning'].fillna('').astype(str)
+data['Frekvens'] = data['Frekvens'].fillna(4)  # Default to 4 weeks if missing
+
+# Helper function to calculate pickup days
+def calculate_pickup_days(start_date, weekday, frequency, year=2025):
+    """
+    Calculate all pickup dates in a year based on the start date, weekday, and frequency.
+
+    Args:
+        start_date (datetime.date): The first date to start calculations from.
+        weekday (int): Day of the week (1=Mon, 2=Tue, ..., 7=Sun).
+        frequency (float): Pickup frequency (1=weekly, 2=every 2 weeks, etc.).
+        year (int): Year to calculate for.
+
+    Returns:
+        list: List of all pickup dates in the given year.
+    """
+    current_date = start_date
+    days = []
+    delta = timedelta(days=int(7 / frequency))  # Frequency determines the gap in days
+
+    # Ensure we start on the correct weekday
+    while current_date.weekday() + 1 != weekday:
+        current_date += timedelta(days=1)
+
+    # Generate all dates for the year
+    while current_date.year == year:
+        days.append(current_date)
+        current_date += delta
+
+    return days
 
 # Streamlit app
 st.title("BIRB Voss kalender")
@@ -75,26 +99,24 @@ if search_query and len(search_query) >= 3:
             )
 
             # Highlight calendar days based on all routes for the selected entries
-            calendar_data = defaultdict(lambda: defaultdict(list))
+            calendar_data = defaultdict(list)
 
             # Process all routes for the selected entries
             for _, row in filtered_data.iterrows():
                 route = str(row['Rutenummer'])
-                week_day = int(route[3])  # Weekday: 1=Mon, 2=Tue, ..., 7=Sun
-                cycle_week = int(route[4])  # Cycle week
+                weekday = int(route[3])  # Weekday: 1=Mon, 2=Tue, ..., 7=Sun
+                frequency = float(row['Frekvens'])  # Pickup frequency
                 waste_type = route[0]  # Waste type: 2/3=Paper, 6=Glass, 7=Restavfall/Matavfall
 
                 # Combine Restavfall and Matavfall for routes starting with 7
-                if waste_type == '7':
-                    color = COLORS['7']  # Green for Restavfall/Matavfall
-                else:
-                    color = COLORS.get(waste_type, 'white')
+                color = COLORS.get(waste_type, 'white')
 
-                # Map cycle weeks to calendar weeks
-                weeks = CYCLE_WEEKS.get(cycle_week, [])
-                for week in weeks:
-                    # Add the weekday for this calendar week
-                    calendar_data[week][week_day].append(color)
+                # Calculate all pickup days for the route
+                pickup_days = calculate_pickup_days(date(2025, 1, 1), weekday, frequency)
+
+                # Map pickup days to the calendar
+                for day in pickup_days:
+                    calendar_data[day].append(color)
 
             # Display full year calendar
             st.write("Full Calendar for 2025:")
@@ -107,13 +129,14 @@ if search_query and len(search_query) >= 3:
                 month_grid += "<tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr>"
                 for week in cal:
                     month_grid += "<tr>"
-                    for i, day in enumerate(week):
+                    for day in week:
                         if day == 0:
                             # Empty day
                             month_grid += "<td style='padding: 5px;'></td>"
                         else:
                             # Determine colors for the day
-                            colors = calendar_data.get(day, {}).get(i + 1, [])
+                            pickup_date = date(2025, month, day)
+                            colors = calendar_data.get(pickup_date, [])
                             if colors:
                                 # Divide the highlight for overlapping colors
                                 gradient = "linear-gradient("
