@@ -106,6 +106,16 @@ if search_query and len(search_query) >= 3:
             # Process all routes for the selected entries
             for _, row in filtered_data.iterrows():
                 route = str(row['Rutenummer'])
+
+                # Handle special case for route 81732 (paper and glass on the same day)
+                if route == '81732':
+                    weekday = 3  # Wednesday
+                    cycle_week = 2
+                    pickup_dates = calculate_pickup_dates(cycle_week, weekday)
+                    for day in pickup_dates:
+                        calendar_data[day].extend(['blue', 'gray'])
+                    continue
+
                 weekday = int(route[3])  # Weekday: 1=Monday, ..., 7=Sunday
                 cycle_week = int(route[4])  # Cycle week
                 waste_type = route[0]  # Waste type: 2/3=Paper, 6=Glass, 7=Restavfall/Matavfall
